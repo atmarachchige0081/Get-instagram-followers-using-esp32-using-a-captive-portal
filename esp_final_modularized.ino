@@ -47,8 +47,7 @@ void setup() {
 
   portalManager.begin();
   
-  Serial.println("System ready. Captive Portal + Stepper integrated.");
-  Serial.println("When followers update (0-9), stepper rotates forward to new digit.");
+  Serial.println("System ready.");    
 }
 
 
