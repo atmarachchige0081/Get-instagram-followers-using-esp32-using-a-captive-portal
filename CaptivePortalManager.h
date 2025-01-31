@@ -14,19 +14,20 @@
  *   1) Launching a Wi-Fi Access Point & DNS-based Captive Portal
  *   2) Collecting Wi-Fi + Instagram credentials
  *   3) Connecting to the provided Wi-Fi
- *   4) Periodically fetching Instagram follower count
+ *   4) Fetching Instagram follower count periodically
+ *   5) Storing the latest fetched follower count
  */
 class CaptivePortalManager
 {
 public:
-
     CaptivePortalManager(const char* apSSID = "ConfigPortal", 
                          const char* apPASS = "");
-
 
     void begin();
 
     void handle();
+
+    int getFollowerCount() const { return _currentFollowerCount; }
 
 private:
 
@@ -51,9 +52,11 @@ private:
     bool   configReceived;
 
     unsigned long lastFetchTime;
-    static const unsigned long FETCH_INTERVAL = 60000; // 60s
+    static const unsigned long FETCH_INTERVAL = 60000; 
 
-    static const char MAIN_page[]; 
+    static const char MAIN_page[];
+
+    int _currentFollowerCount; 
 };
 
 #endif

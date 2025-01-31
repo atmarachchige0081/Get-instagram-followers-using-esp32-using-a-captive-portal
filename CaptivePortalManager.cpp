@@ -59,44 +59,38 @@ const char CaptivePortalManager::MAIN_page[] PROGMEM = R"rawliteral(
 )rawliteral";
 
 CaptivePortalManager::CaptivePortalManager(const char* apSSID, const char* apPASS)
-    : server(80), // Initialize web server on port 80
-      apSSID(apSSID),
-      apPASS(apPASS),
-      configReceived(false),
-      lastFetchTime(0)
-{
-
-}
+  : server(80),
+    apSSID(apSSID),
+    apPASS(apPASS),
+    configReceived(false),
+    lastFetchTime(0),
+    _currentFollowerCount(-1) 
+{}
 
 void CaptivePortalManager::begin()
 {
     startCaptivePortal();
 }
 
-
 void CaptivePortalManager::handle()
 {
-
     dnsServer.processNextRequest();
     server.handleClient();
 
     if (configReceived) {
         stopCaptivePortal();
-
         if (connectToWiFi(wifiSSID, wifiPASS)) {
-
             fetchInstagramFollowers(instagramUser);
             lastFetchTime = millis();
         }
-
         configReceived = false;
     }
 
     if (WiFi.status() == WL_CONNECTED) {
-        unsigned long currentTime = millis();
-        if (currentTime - lastFetchTime >= FETCH_INTERVAL) {
+        unsigned long now = millis();
+        if (now - lastFetchTime >= FETCH_INTERVAL) {
             fetchInstagramFollowers(instagramUser);
-            lastFetchTime = currentTime;
+            lastFetchTime = now;
         }
     }
 }
@@ -114,13 +108,13 @@ void CaptivePortalManager::startCaptivePortal()
 
     dnsServer.start(53, "*", AP_IP);
 
-    server.on("/", HTTP_GET, [this]() {
+    server.on("/", HTTP_GET, [this](){
         handleRoot();
     });
-    server.on("/submit", HTTP_POST, [this]() {
+    server.on("/submit", HTTP_POST, [this](){
         handleSubmit();
     });
-    server.onNotFound([this]() {
+    server.onNotFound([this](){
         handleNotFound();
     });
 
@@ -159,7 +153,6 @@ bool CaptivePortalManager::connectToWiFi(const String& ssid, const String& pass)
         return false;
     }
 }
-
 
 void CaptivePortalManager::fetchInstagramFollowers(const String& userName)
 {
@@ -203,10 +196,9 @@ void CaptivePortalManager::fetchInstagramFollowers(const String& userName)
     } else {
         jsonIndex += 4;
     }
-
     String jsonBody = rawResponse.substring(jsonIndex);
 
-    StaticJsonDocument<8192> doc;
+    StaticJsonDocument<4096> doc;
     DeserializationError error = deserializeJson(doc, jsonBody);
     if (error) {
         Serial.print("JSON parse error: ");
@@ -215,15 +207,15 @@ void CaptivePortalManager::fetchInstagramFollowers(const String& userName)
     }
 
     int followerCount = doc["data"]["user"]["edge_followed_by"]["count"] | -1;
+    if (followerCount < 0) followerCount = 0; 
+    if (followerCount > 9) followerCount = 9; 
+
+    _currentFollowerCount = followerCount;
+
     Serial.println("-----------------------");
-    if (followerCount != -1) {
-        Serial.printf("Instagram @%s has %d followers.\n", userName.c_str(), followerCount);
-    } else {
-        Serial.println("Could not find follower count in the response.");
-    }
+    Serial.printf("Instagram @%s has %d followers (clamped 0-9).\n", userName.c_str(), followerCount);
     Serial.println("-----------------------");
 }
-
 
 void CaptivePortalManager::handleRoot()
 {
