@@ -64,7 +64,7 @@ CaptivePortalManager::CaptivePortalManager(const char* apSSID, const char* apPAS
     apPASS(apPASS),
     configReceived(false),
     lastFetchTime(0),
-    _currentFollowerCount(-1) 
+    _currentFollowerCount(-1) // initialize
 {}
 
 void CaptivePortalManager::begin()
@@ -80,6 +80,7 @@ void CaptivePortalManager::handle()
     if (configReceived) {
         stopCaptivePortal();
         if (connectToWiFi(wifiSSID, wifiPASS)) {
+            // Fetch once
             fetchInstagramFollowers(instagramUser);
             lastFetchTime = millis();
         }
@@ -169,7 +170,6 @@ void CaptivePortalManager::fetchInstagramFollowers(const String& userName)
     }
 
     String urlPath = "/api/v1/users/web_profile_info/?username=" + userName;
-
     client.printf("GET %s HTTP/1.1\r\n", urlPath.c_str());
     client.printf("Host: %s\r\n", HOST);
     client.println("User-Agent: Instagram 76.0.0.15.395");
@@ -196,6 +196,7 @@ void CaptivePortalManager::fetchInstagramFollowers(const String& userName)
     } else {
         jsonIndex += 4;
     }
+
     String jsonBody = rawResponse.substring(jsonIndex);
 
     StaticJsonDocument<4096> doc;
@@ -213,7 +214,7 @@ void CaptivePortalManager::fetchInstagramFollowers(const String& userName)
     _currentFollowerCount = followerCount;
 
     Serial.println("-----------------------");
-    Serial.printf("Instagram @%s has %d followers (clamped 0-9).\n", userName.c_str(), followerCount);
+    Serial.printf("Instagram @%s => %d (0-9 clamped)\n", userName.c_str(), followerCount);
     Serial.println("-----------------------");
 }
 
