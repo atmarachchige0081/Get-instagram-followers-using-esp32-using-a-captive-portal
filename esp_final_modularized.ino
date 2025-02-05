@@ -13,13 +13,28 @@ const int hallSensorPin = 15;
 
 int current_position = 0;
 
+bool debouncedRead(int pin, unsigned long debounceTimeMs = 10) {
+  bool state = digitalRead(pin);
+  unsigned long startTime = millis();
+  while (millis() - startTime < debounceTimeMs) {
+    if (digitalRead(pin) != state) {
+      state = digitalRead(pin);
+      startTime = millis();
+    }
+    delay(1); 
+  }
+  return state;
+}
+
 void homeStepper() {
   Serial.println("Homing the stepper. Rotating until hall sensor is triggered...");
-  
-  while (digitalRead(hallSensorPin) == HIGH) {
+
+  while (debouncedRead(hallSensorPin, 10) == HIGH) {
     myStepper.step(-4); 
     delay(5); 
   }
+  current_position = 0;
+  Serial.println("Stepper homed to 0.");
 }
 
 void moveToDigit(int target_position) {
@@ -43,32 +58,27 @@ void moveToDigit(int target_position) {
     Serial.println("Already at target digit.");
   }
 }
+
 unsigned long lastPrintTime = 0;
 const unsigned long PRINT_INTERVAL = 60000; 
-
 static int lastKnownFollowers = -1;
 
 void setup() {
   Serial.begin(115200);
   delay(1000);
 
-
   pinMode(hallSensorPin, INPUT); 
 
   myStepper.setSpeed(10);
 
-
   homeStepper();
-
-
+  
   portalManager.begin();
 
   Serial.println("System ready: Homed stepper + Portal Manager started.");
 }
 
-
 void loop() {
-
   portalManager.handle();
 
   int followerCount = portalManager.getFollowerCount();
